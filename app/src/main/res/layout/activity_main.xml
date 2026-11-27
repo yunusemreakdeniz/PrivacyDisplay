@@ -95,7 +95,52 @@
 
         <TextView
             style="@style/SectionLabel"
+            android:text="@string/section_ghost" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/ghost_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/ghost_mode" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ghost_body"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <TextView
+            android:id="@+id/ghost_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/ghost_strength"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stepSize="0.05"
+            android:valueFrom="0.3"
+            android:valueTo="0.9" />
+
+        <TextView
+            style="@style/SectionLabel"
             android:text="@string/section_shield" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/smart_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/smart_mode" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/smart_body"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
 
         <TextView
             android:id="@+id/intensity_label"

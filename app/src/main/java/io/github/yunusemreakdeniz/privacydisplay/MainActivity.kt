@@ -61,6 +61,31 @@ class MainActivity : AppCompatActivity() {
             showLabels()
         }
 
+        val ghostStrength = findViewById<Slider>(R.id.ghost_strength)
+        ghostStrength.value = (Math.round(prefs.ghostStrength / 0.05f) * 0.05f).coerceIn(0.3f, 0.9f)
+        ghostStrength.isEnabled = prefs.ghostMode
+        ghostStrength.addOnChangeListener { _, value, _ ->
+            prefs.ghostStrength = value
+            showLabels()
+            PrivacyService.refresh(this)
+        }
+        findViewById<MaterialSwitch>(R.id.ghost_mode).apply {
+            isChecked = prefs.ghostMode
+            setOnCheckedChangeListener { _, on ->
+                prefs.ghostMode = on
+                ghostStrength.isEnabled = on
+                PrivacyService.refresh(this@MainActivity)
+            }
+        }
+        findViewById<MaterialSwitch>(R.id.smart_mode).apply {
+            isChecked = prefs.smartMode
+            setOnCheckedChangeListener { _, on ->
+                prefs.smartMode = on
+                refresh()
+                if (missing().isEmpty()) PrivacyService.restart(this@MainActivity) else PrivacyService.stop(this@MainActivity)
+            }
+        }
+
         findViewById<MaterialSwitch>(R.id.battery_saver).apply {
             isChecked = prefs.batterySaver
             idle.isEnabled = prefs.batterySaver
@@ -115,7 +140,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun missing(): List<Need> = buildList {
         if (!Settings.canDrawOverlays(this@MainActivity)) add(Need.OVERLAY)
-        if (!granted(Manifest.permission.CAMERA)) add(Need.CAMERA)
+        if (prefs.smartMode && !granted(Manifest.permission.CAMERA)) add(Need.CAMERA)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
             add(Need.NOTIFICATIONS)
         }
@@ -238,6 +263,8 @@ class MainActivity : AppCompatActivity() {
     private fun showLabels() {
         findViewById<TextView>(R.id.intensity_label).text =
             getString(R.string.intensity_label, (prefs.intensity * 100).toInt())
+        findViewById<TextView>(R.id.ghost_label).text =
+            getString(R.string.ghost_label, (prefs.ghostStrength * 100).toInt())
         findViewById<TextView>(R.id.idle_label).text = getString(R.string.idle_label, prefs.idleCheckSeconds)
     }
 
@@ -253,13 +280,15 @@ class MainActivity : AppCompatActivity() {
             grant(Need.OVERLAY)
             return
         }
+        // Ghost filter for 2 s, then the full curtain for 2 s.
         val overlay = ShieldOverlay(applicationContext)
-        overlay.attach(prefs.intensity)
-        overlay.show()
+        overlay.attach()
+        overlay.ghost(prefs.ghostStrength)
+        mainSwitch.postDelayed({ overlay.curtain(prefs.intensity) }, 2_000)
         mainSwitch.postDelayed({
-            overlay.hide()
+            overlay.clear()
             mainSwitch.postDelayed({ overlay.detach() }, ShieldOverlay.FADE_IN_MS + 50)
-        }, 2_000)
+        }, 4_000)
     }
 
     private fun Float.roundTo(step: Float) = (Math.round(this / step) * step).coerceIn(0.5f, 0.8f)

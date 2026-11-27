@@ -15,7 +15,7 @@
     <string name="grant">İzin ver</string>
 
     <string name="main_switch">Gizlilik koruması</string>
-    <string name="test_shield">Perdeyi dene (2 sn)</string>
+    <string name="test_shield">Dene (önce hayalet, sonra perde)</string>
     <string name="state_off">Kapalı</string>
     <string name="state_idle">Uykuda: ekran kapalı ya da korunan bir uygulama değil</string>
     <string name="state_watch">Hareket izleniyor, kamera kapalı</string>
@@ -24,7 +24,13 @@
     <string name="details_faces">Yüz: %1$d · baş açısı: %2$d°</string>
     <string name="details_low_light">Kamera için çok karanlık, eğim karar veriyor</string>
 
-    <string name="section_shield">Perde</string>
+    <string name="section_ghost">Hayalet filtre</string>
+    <string name="ghost_mode">Hayalet filtre hep açık</string>
+    <string name="ghost_body">Hayalet ekran koruyucu gibi: koyu bir ton ve ince çizgiler. Yakından ve karşıdan rahat okunur, yandan ya da uzaktan zor okunur. Kamera gerekmez. Gerçek filtre yan ışığı mikro panjurlarla keser; bir uygulama bunu yapamaz, bu yüzden parlaklığı ve kontrastı düşürür.</string>
+    <string name="ghost_label">Filtre gücü: %%%1$d</string>
+    <string name="section_shield">Akıllı perde</string>
+    <string name="smart_mode">Başkası bakınca tam karart</string>
+    <string name="smart_body">Ön kamera ikinci bir yüz görünce ekranı tamamen karartır; yalnız sen bakınca açar.</string>
     <string name="intensity_label">Koyuluk: %%%1$d</string>
     <string name="no_face">2 sn kimse bakmazsa da karart</string>
 

@@ -15,7 +15,7 @@
     <string name="grant">Allow</string>
 
     <string name="main_switch">Privacy protection</string>
-    <string name="test_shield">Try the curtain (2 s)</string>
+    <string name="test_shield">Try it (ghost, then curtain)</string>
     <string name="state_off">Off</string>
     <string name="state_idle">Sleeping: screen off or not a protected app</string>
     <string name="state_watch">Watching motion, camera off</string>
@@ -24,7 +24,13 @@
     <string name="details_faces">Faces: %1$d · head angle: %2$d°</string>
     <string name="details_low_light">Too dark for the camera, the tilt decides</string>
 
-    <string name="section_shield">Curtain</string>
+    <string name="section_ghost">Ghost filter</string>
+    <string name="ghost_mode">Ghost filter always on</string>
+    <string name="ghost_body">Like a privacy screen protector: a dark tint with fine lines. Easy to read up close and head on, harder from the side or further away. No camera. A real filter blocks side light with micro louvres; an app cannot, so this lowers brightness and contrast instead.</string>
+    <string name="ghost_label">Filter strength: %1$d%%</string>
+    <string name="section_shield">Smart curtain</string>
+    <string name="smart_mode">Full curtain when someone else looks</string>
+    <string name="smart_body">The front camera spots a second face and darkens fully until only you are looking.</string>
     <string name="intensity_label">Darkness: %1$d%%</string>
     <string name="no_face">Also darken when nobody has looked for 2 s</string>
 

@@ -110,7 +110,7 @@ class PrivacyService : LifecycleService(), SensorEventListener {
             stopSelf()
             return
         }
-        overlay.attach(prefs.intensity)
+        overlay.attach()
         ContextCompat.registerReceiver(
             this,
             screenReceiver,
@@ -134,7 +134,12 @@ class PrivacyService : LifecycleService(), SensorEventListener {
                 stopSelf()
             }
             ACTION_REFRESH -> {
-                overlay.setIntensity(prefs.intensity)
+                if (!prefs.smartMode) {
+                    stopCamera()
+                    decider.reset()
+                    if (state != PrivacyState.IDLE) state = PrivacyState.SENSOR_WATCH
+                }
+                showLayer(force = true)
                 evaluate()
             }
         }
@@ -163,6 +168,13 @@ class PrivacyService : LifecycleService(), SensorEventListener {
             return
         }
         if (state == PrivacyState.IDLE) enterWatch(now)
+
+        if (!prefs.smartMode) {
+            // Ghost filter only: no camera, no tilt rule.
+            showLayer()
+            publish()
+            return
+        }
 
         val lowLight = lux in 0f..LOW_LIGHT_LUX
         if (lowLight) {
@@ -203,6 +215,7 @@ class PrivacyService : LifecycleService(), SensorEventListener {
             }
             PrivacyState.IDLE -> Unit
         }
+        showLayer()
         publish()
     }
 
@@ -222,14 +235,31 @@ class PrivacyService : LifecycleService(), SensorEventListener {
         sensors.unregisterListener(this)
         stopCamera()
         decider.reset()
-        overlay.hide(animate = false)
+        overlay.clear(animate = false)
+        shownLayer = null
         lux = -1f
         state = PrivacyState.IDLE
     }
 
-    private fun applyShield() {
-        if (decider.shielded && !overlay.visible) overlay.show()
-        if (!decider.shielded && overlay.visible) overlay.hide()
+    private fun applyShield() = showLayer()
+
+    private var shownLayer: String? = null
+
+    /** Curtain when someone else is looking, otherwise the ghost filter (if on), otherwise nothing. */
+    private fun showLayer(force: Boolean = false) {
+        val layer = when {
+            state == PrivacyState.IDLE -> "none"
+            decider.shielded -> "curtain"
+            prefs.ghostMode -> "ghost"
+            else -> "none"
+        }
+        if (layer == shownLayer && !force) return
+        shownLayer = layer
+        when (layer) {
+            "curtain" -> overlay.curtain(prefs.intensity)
+            "ghost" -> overlay.ghost(prefs.ghostStrength)
+            else -> overlay.clear()
+        }
     }
 
     private fun onReading(reading: FaceReading) {
@@ -363,7 +393,13 @@ class PrivacyService : LifecycleService(), SensorEventListener {
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW),
         )
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0
+        val camera = prefs.smartMode &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val type = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !camera -> ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && camera -> ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+            else -> 0
+        }
         return runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) startForeground(NOTIFICATION_ID, notification(), type)
             else startForeground(NOTIFICATION_ID, notification())
@@ -436,6 +472,13 @@ class PrivacyService : LifecycleService(), SensorEventListener {
         fun stop(context: Context) {
             Prefs(context).enabled = false
             context.stopService(Intent(context, PrivacyService::class.java))
+        }
+
+        /** Restarts the service, e.g. after smart mode changed (the foreground type depends on it). */
+        fun restart(context: Context) {
+            if (!status.value.running) return
+            context.stopService(Intent(context, PrivacyService::class.java))
+            ContextCompat.startForegroundService(context, Intent(context, PrivacyService::class.java))
         }
 
         fun refresh(context: Context) {

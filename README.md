@@ -2,6 +2,10 @@
 
 Android app that darkens the screen in milliseconds when someone looks from the side or over your shoulder, while staying out of the way when only you are looking. Built for low battery use.
 
+## Ghost filter
+
+Always on, no camera: a dark tint with fine horizontal lines, like a privacy screen protector. It reads well up close and head on, and is harder to read from the side or further away. A real filter blocks side light with micro louvres. No app can do that, so this lowers brightness and contrast instead. The smart curtain below adds a full blackout when a second face shows up.
+
 ## How it works
 
 A four-level, event-driven state machine:

@@ -24,6 +24,21 @@ class Prefs(context: Context) {
         get() = sp.getStringSet("apps", emptySet()).orEmpty()
         set(v) = sp.edit().putStringSet("apps", v).apply()
 
+    /** Ghost mode: a permanent privacy-filter look (dark tint and fine lines), no camera needed. */
+    var ghostMode: Boolean
+        get() = sp.getBoolean("ghost", true)
+        set(v) = sp.edit().putBoolean("ghost", v).apply()
+
+    /** Ghost filter strength, 0.3 to 0.9 of the allowed darkness. */
+    var ghostStrength: Float
+        get() = sp.getFloat("ghost_strength", 0.6f)
+        set(v) = sp.edit().putFloat("ghost_strength", v.coerceIn(0.3f, 0.9f)).apply()
+
+    /** Smart protection: the front camera spots a second person and drops the full curtain. */
+    var smartMode: Boolean
+        get() = sp.getBoolean("smart", true)
+        set(v) = sp.edit().putBoolean("smart", v).apply()
+
     /** Battery saver: the camera sleeps while the phone is still and wakes on a move or a timer. */
     var batterySaver: Boolean
         get() = sp.getBoolean("battery_saver", false)
