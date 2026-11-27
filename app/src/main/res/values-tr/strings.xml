@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Privacy Display</string>
+    <string name="tagline">Biri yandan ya da omzunun üstünden bakınca ekranı milisaniyeler içinde karartır; yalnız sen bakarken araya girmez.</string>
+
+    <string name="perm_title">Önce birkaç izin</string>
+    <string name="perm_overlay">Diğer uygulamaların üzerinde göster</string>
+    <string name="perm_overlay_body">Gizlilik perdesi her uygulamanın üstüne çizilir.</string>
+    <string name="perm_camera">Kamera</string>
+    <string name="perm_camera_body">Ön kamera kimin baktığını kısa süre kontrol eder (320x240, cihazda; hiçbir şey kaydedilmez ya da gönderilmez).</string>
+    <string name="perm_notifications">Bildirimler</string>
+    <string name="perm_notifications_body">Korumanın açık olduğunu gösterir ve durdurmayı sağlar.</string>
+    <string name="perm_usage">Kullanım erişimi</string>
+    <string name="perm_usage_body">Yalnızca "Sadece seçili uygulamalarda" için; hangi uygulamanın açık olduğunu bilmek gerekir.</string>
+    <string name="grant">İzin ver</string>
+
+    <string name="main_switch">Gizlilik koruması</string>
+    <string name="test_shield">Perdeyi dene (2 sn)</string>
+    <string name="state_off">Kapalı</string>
+    <string name="state_idle">Uykuda: ekran kapalı ya da korunan bir uygulama değil</string>
+    <string name="state_watch">Hareket izleniyor, kamera kapalı</string>
+    <string name="state_check">Kimin baktığı kontrol ediliyor</string>
+    <string name="state_shield">Perde indi</string>
+    <string name="details_faces">Yüz: %1$d · baş açısı: %2$d°</string>
+    <string name="details_low_light">Kamera için çok karanlık, eğim karar veriyor</string>
+
+    <string name="section_shield">Perde</string>
+    <string name="intensity_label">Koyuluk: %%%1$d</string>
+    <string name="no_face">Kimse bakmıyorken de karart</string>
+
+    <string name="section_where">Nerede</string>
+    <string name="only_selected">Sadece seçili uygulamalarda</string>
+    <string name="pick_apps">Uygulamaları seç</string>
+    <string name="everywhere">Ekran açıkken her yerde</string>
+    <plurals name="selected_apps">
+        <item quantity="one">%d uygulama seçili</item>
+        <item quantity="other">%d uygulama seçili</item>
+    </plurals>
+
+    <string name="section_battery">Pil</string>
+    <string name="idle_label">Telefon sabit dururken %1$d sn\'de bir kontrol et</string>
+    <string name="how_it_works" formatted="false">Telefon sabitken kamera kapalı kalır; hareket ya da zamanlayıcı onu 320x240 hızlı bir bakış için uyandırır. Baş açısı 42°\'yi geçince ya da ikinci bir yüz görülünce perde anında iner; tek yüzle 32°\'nin altına inince yumuşakça kalkar. Karanlıkta kamera kullanılmaz, eğim karar verir. Android, dokunmaların geçtiği bir katmanda en fazla %80 koyuluğa izin verir.</string>
+
+    <string name="channel_name">Gizlilik koruması</string>
+    <string name="action_stop">Durdur</string>
+    <string name="tile_label">Gizlilik</string>
+    <string name="tile_on">Açık</string>
+    <string name="tile_off">Kapalı</string>
+</resources>

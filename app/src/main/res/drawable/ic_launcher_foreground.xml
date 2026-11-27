@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- A phone half covered by a dark curtain, with an eye on the clear half. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M40,28h28a6,6 0,0 1,6 6v40a6,6 0,0 1,-6 6h-28a6,6 0,0 1,-6 -6v-40a6,6 0,0 1,6 -6z" />
+    <path
+        android:fillColor="#FF3B3BDB"
+        android:pathData="M54,28h14a6,6 0,0 1,6 6v40a6,6 0,0 1,-6 6h-14z" />
+    <path
+        android:fillColor="#FF0B0B12"
+        android:pathData="M37,54c2.5,-5 6.5,-8 11.5,-8s9,3 11.5,8c-2.5,5 -6.5,8 -11.5,8s-9,-3 -11.5,-8z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M48.5,50a4,4 0,1 1,0 8a4,4 0,1 1,0 -8z" />
+</vector>
