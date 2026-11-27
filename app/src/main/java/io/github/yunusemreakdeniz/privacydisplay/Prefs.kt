@@ -24,6 +24,11 @@ class Prefs(context: Context) {
         get() = sp.getStringSet("apps", emptySet()).orEmpty()
         set(v) = sp.edit().putStringSet("apps", v).apply()
 
+    /** Battery saver: the camera sleeps while the phone is still and wakes on a move or a timer. */
+    var batterySaver: Boolean
+        get() = sp.getBoolean("battery_saver", false)
+        set(v) = sp.edit().putBoolean("battery_saver", v).apply()
+
     /** How often the camera wakes for a check while the phone lies still, in seconds. */
     var idleCheckSeconds: Int
         get() = sp.getInt("idle_check", 5)
@@ -31,6 +36,6 @@ class Prefs(context: Context) {
 
     /** Shield when nobody is looking at the screen (no face). */
     var shieldWhenNoFace: Boolean
-        get() = sp.getBoolean("no_face", true)
-        set(v) = sp.edit().putBoolean("no_face", v).apply()
+        get() = sp.getBoolean("no_face_v2", false)
+        set(v) = sp.edit().putBoolean("no_face_v2", v).apply()
 }

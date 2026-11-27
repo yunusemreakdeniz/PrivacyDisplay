@@ -5,41 +5,62 @@ import kotlin.math.abs
 /** The four levels of the roadmap's event-driven state machine. */
 enum class PrivacyState { IDLE, SENSOR_WATCH, ACTIVE_CHECK, SHIELD_ACTIVE }
 
-/** One analysed camera frame: how many faces, and the head yaw of the main (largest) one. */
-data class FaceReading(val faces: Int, val yawDegrees: Float)
+/**
+ * One analysed camera frame. The largest face is taken to be the owner, the one holding the
+ * phone; [others] counts every other face, i.e. people who can also see the screen.
+ */
+data class FaceReading(val faces: Int, val yawDegrees: Float, val others: Int = (faces - 1).coerceAtLeast(0))
 
 /**
- * Hysteresis so the shield doesn't flicker at the edge of the angle:
- * - down when |yaw| > [shieldYaw] or more than one face (someone looking over the shoulder),
- *   or nobody has been seen for [noFaceFrames] frames in a row;
- * - up only when exactly one face is back below |yaw| < [clearYaw].
- * Anything in between keeps the current state.
+ * Decides when the curtain comes down, built so the owner is not darkened by mistake:
+ * - a second face is the real threat: down after [threatFrames] frames in a row;
+ * - the owner's own head angle only counts when it stays past [shieldYaw] for [yawFrames]
+ *   frames (a glance aside doesn't darken the screen);
+ * - no face at all only counts when [shieldWhenNoFace] is on, and after [noFaceMs];
+ * - up again only after [clearFrames] frames of the owner alone, looking within [clearYaw].
  */
 class ShieldDecider(
     private val shieldYaw: Float = 42f,
     private val clearYaw: Float = 32f,
-    private val noFaceFrames: Int = 2,
+    private val threatFrames: Int = 2,
+    private val yawFrames: Int = 4,
+    private val clearFrames: Int = 3,
+    private val noFaceMs: Long = 2_000,
 ) {
     var shielded: Boolean = false
         private set
-    private var emptyFrames = 0
+    var shieldWhenNoFace: Boolean = false
+
+    private var threatRun = 0
+    private var yawRun = 0
+    private var clearRun = 0
+    private var noFaceSince = -1L
 
     /** Returns true when the shield state changed. */
-    fun onFrame(reading: FaceReading): Boolean {
+    fun onFrame(reading: FaceReading, nowMs: Long): Boolean {
         val before = shielded
+        val yaw = abs(reading.yawDegrees)
         if (reading.faces == 0) {
-            emptyFrames++
-            if (emptyFrames >= noFaceFrames) shielded = true
-        } else {
-            emptyFrames = 0
-            val yaw = abs(reading.yawDegrees)
-            when {
-                reading.faces > 1 || yaw > shieldYaw -> shielded = true
-                reading.faces == 1 && yaw < clearYaw -> shielded = false
-            }
+            if (noFaceSince < 0) noFaceSince = nowMs
+            threatRun = 0
+            yawRun = 0
+            clearRun = 0
+            if (shieldWhenNoFace && nowMs - noFaceSince >= noFaceMs) shielded = true
+            return shielded != before
+        }
+        noFaceSince = -1L
+        threatRun = if (reading.others > 0) threatRun + 1 else 0
+        yawRun = if (reading.others == 0 && yaw > shieldYaw) yawRun + 1 else 0
+        clearRun = if (reading.others == 0 && yaw < clearYaw) clearRun + 1 else 0
+        when {
+            threatRun >= threatFrames || yawRun >= yawFrames -> shielded = true
+            shielded && clearRun >= clearFrames -> shielded = false
         }
         return shielded != before
     }
+
+    /** True while something suspicious is building up, so every frame should be analysed. */
+    val suspicious: Boolean get() = shielded || threatRun > 0 || yawRun > 0
 
     /** Low light: no camera, so the tilt alone decides (a phone turned sideways shows the screen to others). */
     fun onTilt(rollDegrees: Float, shieldRoll: Float = 40f, clearRoll: Float = 28f): Boolean {
@@ -51,7 +72,10 @@ class ShieldDecider(
 
     fun reset() {
         shielded = false
-        emptyFrames = 0
+        threatRun = 0
+        yawRun = 0
+        clearRun = 0
+        noFaceSince = -1L
     }
 }
 
@@ -67,6 +91,8 @@ class MotionTracker(
     private var refPitch = Float.NaN
     private var refRoll = Float.NaN
     private var stillSince = 0L
+    private var stillPitch = 0f
+    private var stillRoll = 0f
 
     /** Feed gravity; returns true when the tilt moved more than [moveThreshold] since the last check. */
     fun onGravity(x: Float, y: Float, z: Float, nowMs: Long): Boolean {
@@ -94,9 +120,6 @@ class MotionTracker(
         stillRoll = roll
         stillSince = nowMs
     }
-
-    private var stillPitch = 0f
-    private var stillRoll = 0f
 
     fun stillFor(nowMs: Long): Long = nowMs - stillSince
 

@@ -13,9 +13,9 @@ A four-level, event-driven state machine:
 | 2 | `ACTIVE_CHECK` | Front camera at 320x240 (CameraX, `STRATEGY_KEEP_ONLY_LATEST`) and ML Kit face detection in fast mode, head yaw only. |
 | 3 | `SHIELD_ACTIVE` | Curtain down until the view is safe again. |
 
-- **Hysteresis.** The curtain drops when `|yaw| > 42°`, or with more than one face, or with no face for two frames (optional). It lifts only at `|yaw| < 32°` with exactly one face.
+- **Owner first.** The largest face is the owner. A second face in two frames in a row drops the curtain. The owner's own head angle only counts when it stays past 42° for four frames, so a glance aside never darkens the screen. It lifts after three frames of the owner alone below 32°. "No face" darkens only if enabled, after 2 s.
 - **Asymmetric animation.** Darkening is instant. Lifting fades over 180 ms.
-- **Battery.** While the phone is still, the camera sleeps and wakes every few seconds (2–30 s, set by the user). A move wakes it at once. Once the view is clear and the phone has been still for 3 s, the camera turns off again.
+- **Continuous by default.** About 3 checks a second at 640x480, every frame while something looks wrong. Battery saver brings back the roadmap's sleeping camera (wakes on a move or every 2–30 s).
 - **Dark rooms.** Below 3 lux the camera is not used. The device tilt decides.
 - **Curtain.** Pure black (`#000000`) overlay, OLED friendly, no blur. Touches pass through. Android 12+ caps such overlays at about 80% opacity.
 - **Only chosen apps.** Optional. Uses usage access to know which app is in front.

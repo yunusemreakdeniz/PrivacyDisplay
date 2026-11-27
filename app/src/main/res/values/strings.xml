@@ -26,7 +26,7 @@
 
     <string name="section_shield">Curtain</string>
     <string name="intensity_label">Darkness: %1$d%%</string>
-    <string name="no_face">Also darken when nobody is looking</string>
+    <string name="no_face">Also darken when nobody has looked for 2 s</string>
 
     <string name="section_where">Where</string>
     <string name="only_selected">Only in chosen apps</string>
@@ -38,8 +38,10 @@
     </plurals>
 
     <string name="section_battery">Battery</string>
+    <string name="battery_saver">Battery saver</string>
+    <string name="battery_saver_body">The camera sleeps while the phone lies still, so someone leaning in is noticed later. Off: about 3 checks a second, every frame when something looks wrong.</string>
     <string name="idle_label">While the phone lies still, check every %1$d s</string>
-    <string name="how_it_works" formatted="false">The camera stays off while the phone is still; a move or the timer wakes it for a quick look at 320x240. The curtain comes down instantly at a head angle over 42° or a second face, and lifts softly below 32° with one face. In the dark the camera is not used; the tilt decides. Android lets touches through an overlay only up to 80% darkness.</string>
+    <string name="how_it_works" formatted="false">The largest face is you. The curtain comes down instantly when a second face shows up in two frames in a row, or when you keep looking away past 42°. It lifts softly once only you are looking again (below 32°, three frames). In the dark the camera is not used; the tilt decides. Android lets touches through an overlay only up to 80% darkness.</string>
 
     <string name="channel_name">Privacy protection</string>
     <string name="action_stop">Stop</string>

@@ -26,7 +26,7 @@
 
     <string name="section_shield">Perde</string>
     <string name="intensity_label">Koyuluk: %%%1$d</string>
-    <string name="no_face">Kimse bakmıyorken de karart</string>
+    <string name="no_face">2 sn kimse bakmazsa da karart</string>
 
     <string name="section_where">Nerede</string>
     <string name="only_selected">Sadece seçili uygulamalarda</string>
@@ -38,8 +38,10 @@
     </plurals>
 
     <string name="section_battery">Pil</string>
+    <string name="battery_saver">Pil tasarrufu</string>
+    <string name="battery_saver_body">Telefon sabitken kamera uyur; yaklaşan biri daha geç fark edilir. Kapalıyken saniyede yaklaşık 3 kontrol, şüpheli bir durumda her kare.</string>
     <string name="idle_label">Telefon sabit dururken %1$d sn\'de bir kontrol et</string>
-    <string name="how_it_works" formatted="false">Telefon sabitken kamera kapalı kalır; hareket ya da zamanlayıcı onu 320x240 hızlı bir bakış için uyandırır. Baş açısı 42°\'yi geçince ya da ikinci bir yüz görülünce perde anında iner; tek yüzle 32°\'nin altına inince yumuşakça kalkar. Karanlıkta kamera kullanılmaz, eğim karar verir. Android, dokunmaların geçtiği bir katmanda en fazla %80 koyuluğa izin verir.</string>
+    <string name="how_it_works" formatted="false">En büyük yüz sensin. İkinci bir yüz art arda iki karede görülünce ya da sen uzun süre 42°\'den fazla yana bakınca perde anında iner. Yalnız sen bakınca (32°\'nin altında, üç kare) yumuşakça kalkar. Karanlıkta kamera kullanılmaz, eğim karar verir. Android, dokunmaların geçtiği bir katmanda en fazla %80 koyuluğa izin verir.</string>
 
     <string name="channel_name">Gizlilik koruması</string>
     <string name="action_stop">Durdur</string>

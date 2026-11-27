@@ -177,7 +177,8 @@ class PrivacyService : LifecycleService(), SensorEventListener {
 
         when (state) {
             PrivacyState.SENSOR_WATCH -> {
-                if (moved || now - lastCheckAt >= prefs.idleCheckSeconds * 1000L) {
+                // Continuous protection keeps the camera on; battery saver lets it sleep between checks.
+                if (!prefs.batterySaver || moved || now - lastCheckAt >= prefs.idleCheckSeconds * 1000L) {
                     moved = false
                     motion.mark(now)
                     startCamera(now)
@@ -185,10 +186,15 @@ class PrivacyService : LifecycleService(), SensorEventListener {
                 }
             }
             PrivacyState.ACTIVE_CHECK, PrivacyState.SHIELD_ACTIVE -> {
-                // Moving: look at every frame. Still: one check every 1.5 s.
-                analyzeIntervalMs = if (motion.stillFor(now) < MOVING_WINDOW_MS) 0L else STILL_INTERVAL_MS
+                // Something building up or the phone moving: every frame. Otherwise a steady pace,
+                // fast enough to catch someone leaning in, slower in battery saver.
+                analyzeIntervalMs = when {
+                    decider.suspicious || motion.stillFor(now) < MOVING_WINDOW_MS -> 0L
+                    prefs.batterySaver -> STILL_INTERVAL_MS
+                    else -> STEADY_INTERVAL_MS
+                }
                 val sawFrame = lastFrameAt > cameraStartedAt
-                if (!decider.shielded && sawFrame && motion.stillFor(now) >= SETTLE_MS) {
+                if (prefs.batterySaver && !decider.suspicious && sawFrame && motion.stillFor(now) >= SETTLE_MS) {
                     // Safe and still for a while: put the camera back to sleep.
                     stopCamera()
                     lastCheckAt = now
@@ -229,11 +235,8 @@ class PrivacyService : LifecycleService(), SensorEventListener {
     private fun onReading(reading: FaceReading) {
         if (state != PrivacyState.ACTIVE_CHECK && state != PrivacyState.SHIELD_ACTIVE) return
         lastFrameAt = SystemClock.elapsedRealtime()
-        if (reading.faces == 0 && !prefs.shieldWhenNoFace) {
-            publish(faces = 0)
-            return
-        }
-        decider.onFrame(reading)
+        decider.shieldWhenNoFace = prefs.shieldWhenNoFace
+        decider.onFrame(reading, lastFrameAt)
         applyShield()
         state = if (decider.shielded) PrivacyState.SHIELD_ACTIVE else PrivacyState.ACTIVE_CHECK
         publish(faces = reading.faces, yaw = reading.yawDegrees)
@@ -284,12 +287,12 @@ class PrivacyService : LifecycleService(), SensorEventListener {
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-                .setMinFaceSize(0.15f)
+                .setMinFaceSize(0.1f)
                 .build(),
         ).also { detector = it }
         @Suppress("DEPRECATION")
         val useCase = ImageAnalysis.Builder()
-            .setTargetResolution(Size(320, 240))
+            .setTargetResolution(Size(640, 480))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
             .also { it.setAnalyzer(executor) { image -> analyze(image, faceDetector) } }
@@ -419,6 +422,7 @@ class PrivacyService : LifecycleService(), SensorEventListener {
         private const val LOW_LIGHT_LUX = 3f
         private const val MOVING_WINDOW_MS = 1_000L
         private const val STILL_INTERVAL_MS = 1_500L
+        private const val STEADY_INTERVAL_MS = 300L
         private const val SETTLE_MS = 3_000L
 
         private val _status = MutableStateFlow(PrivacyStatus())

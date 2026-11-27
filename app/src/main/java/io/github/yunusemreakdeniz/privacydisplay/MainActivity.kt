@@ -61,6 +61,16 @@ class MainActivity : AppCompatActivity() {
             showLabels()
         }
 
+        findViewById<MaterialSwitch>(R.id.battery_saver).apply {
+            isChecked = prefs.batterySaver
+            idle.isEnabled = prefs.batterySaver
+            setOnCheckedChangeListener { _, on ->
+                prefs.batterySaver = on
+                idle.isEnabled = on
+                PrivacyService.refresh(this@MainActivity)
+            }
+        }
+
         findViewById<MaterialSwitch>(R.id.no_face).apply {
             isChecked = prefs.shieldWhenNoFace
             setOnCheckedChangeListener { _, on -> prefs.shieldWhenNoFace = on }

@@ -147,6 +147,20 @@
             style="@style/SectionLabel"
             android:text="@string/section_battery" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/battery_saver"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/battery_saver" />
+
+        <TextView
+            android:id="@+id/battery_saver_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/battery_saver_body"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
         <TextView
             android:id="@+id/idle_label"
             android:layout_width="match_parent"
