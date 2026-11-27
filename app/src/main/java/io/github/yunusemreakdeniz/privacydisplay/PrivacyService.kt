@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.KeyguardManager
 import android.app.PendingIntent
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
@@ -18,6 +19,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -26,6 +29,7 @@ import android.os.SystemClock
 import android.service.quicksettings.TileService
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -76,6 +80,8 @@ class PrivacyService : LifecycleService(), SensorEventListener {
     private var lastCheckAt = 0L
     private var cameraStartedAt = 0L
     private var lastFrameAt = 0L
+    private var cameraPending = false
+    private var cameraPausedUntil = 0L
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var analysis: ImageAnalysis? = null
@@ -121,6 +127,7 @@ class PrivacyService : LifecycleService(), SensorEventListener {
             },
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+        runCatching { getSystemService(CameraManager::class.java)?.registerAvailabilityCallback(cameraAvailability, main) }
         _status.value = PrivacyStatus(running = true)
         main.post(tick)
         requestTileUpdate()
@@ -149,6 +156,7 @@ class PrivacyService : LifecycleService(), SensorEventListener {
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
         runCatching { unregisterReceiver(screenReceiver) }
+        runCatching { getSystemService(CameraManager::class.java)?.unregisterAvailabilityCallback(cameraAvailability) }
         enterIdle()
         overlay.detach()
         detector?.close()
@@ -162,7 +170,7 @@ class PrivacyService : LifecycleService(), SensorEventListener {
 
     private fun evaluate() {
         val now = SystemClock.elapsedRealtime()
-        if (!screenOn || !watchedAppInFront(now)) {
+        if (!screenOn || isLocked() || !watchedAppInFront(now)) {
             enterIdle()
             publish()
             return
@@ -191,10 +199,12 @@ class PrivacyService : LifecycleService(), SensorEventListener {
             PrivacyState.SENSOR_WATCH -> {
                 // Continuous protection keeps the camera on; battery saver lets it sleep between checks.
                 if (!prefs.batterySaver || moved || now - lastCheckAt >= prefs.idleCheckSeconds * 1000L) {
-                    moved = false
-                    motion.mark(now)
-                    startCamera(now)
-                    state = PrivacyState.ACTIVE_CHECK
+                    if (cameraWanted()) {
+                        moved = false
+                        motion.mark(now)
+                        startCamera(now)
+                        state = PrivacyState.ACTIVE_CHECK
+                    }
                 }
             }
             PrivacyState.ACTIVE_CHECK, PrivacyState.SHIELD_ACTIVE -> {
@@ -305,8 +315,11 @@ class PrivacyService : LifecycleService(), SensorEventListener {
     // ---- Camera + ML Kit -----------------------------------------------------------------
 
     private fun startCamera(now: Long) {
-        if (cameraProvider != null) return
+        if (cameraProvider != null || cameraPending) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return
+        // Someone else needs the camera (face unlock, an app lock, a video call): wait for them.
+        if (now < cameraPausedUntil || frontCameraBusyElsewhere) return
+        cameraPending = true
         cameraStartedAt = now
         analyzeIntervalMs = 0L
         nextAnalyzeAt = 0L
@@ -328,19 +341,79 @@ class PrivacyService : LifecycleService(), SensorEventListener {
             .also { it.setAnalyzer(executor) { image -> analyze(image, faceDetector) } }
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
+            cameraPending = false
             val provider = runCatching { future.get() }.getOrNull() ?: return@addListener
-            if (state == PrivacyState.IDLE) return@addListener
+            if (state == PrivacyState.IDLE || !cameraWanted()) return@addListener
             runCatching {
                 provider.unbindAll()
                 provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, useCase)
-            }.onSuccess {
+            }.onSuccess { camera ->
                 cameraProvider = provider
                 analysis = useCase
+                // If another app takes the camera from us, let it have it for a while.
+                camera.cameraInfo.cameraState.observe(this) { cameraState ->
+                    val taken = cameraState.error?.code in setOf(
+                        CameraState.ERROR_CAMERA_IN_USE,
+                        CameraState.ERROR_MAX_CAMERAS_IN_USE,
+                        CameraState.ERROR_CAMERA_DISABLED,
+                        CameraState.ERROR_DO_NOT_DISTURB_MODE_ENABLED,
+                    )
+                    if (taken && cameraProvider === provider) yieldCamera(TAKEN_PAUSE_MS)
+                }
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
+    private fun cameraWanted(): Boolean =
+        prefs.smartMode && SystemClock.elapsedRealtime() >= cameraPausedUntil && !frontCameraBusyElsewhere
+
+    /** Lets go of the camera so another app (face unlock, app lock, banking check) can use it. */
+    private fun yieldCamera(pauseMs: Long) {
+        cameraPausedUntil = SystemClock.elapsedRealtime() + pauseMs
+        if (cameraProvider == null && !cameraPending) return
+        stopCamera()
+        // Lift the curtain too: the person is probably looking at a face check right now.
+        decider.reset()
+        if (state != PrivacyState.IDLE) state = PrivacyState.SENSOR_WATCH
+        showLayer()
+        publish()
+    }
+
+    private fun isLocked(): Boolean = getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true
+
+    private val frontCameraIds: Set<String> by lazy {
+        val manager = getSystemService(CameraManager::class.java) ?: return@lazy emptySet()
+        runCatching {
+            manager.cameraIdList.filter {
+                manager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
+            }.toSet()
+        }.getOrDefault(emptySet())
+    }
+
+    private val busyElsewhere = mutableSetOf<String>()
+    private val frontCameraBusyElsewhere: Boolean get() = busyElsewhere.isNotEmpty()
+
+    private val cameraAvailability = object : CameraManager.AvailabilityCallback() {
+        override fun onCameraUnavailable(cameraId: String) {
+            // Unavailable while we don't hold it: another app opened it.
+            if (cameraId in frontCameraIds && cameraProvider == null && !cameraPending) busyElsewhere += cameraId
+        }
+
+        override fun onCameraAvailable(cameraId: String) {
+            if (busyElsewhere.remove(cameraId) && busyElsewhere.isEmpty()) {
+                // Give the other app a moment to finish, then look again.
+                cameraPausedUntil = maxOf(cameraPausedUntil, SystemClock.elapsedRealtime() + RETURN_DELAY_MS)
+            }
+        }
+
+        override fun onCameraAccessPrioritiesChanged() {
+            // A different app came to the front and may want the camera now (e.g. its face lock).
+            yieldCamera(PRIORITY_PAUSE_MS)
+        }
+    }
+
     private fun stopCamera() {
+        cameraPending = false
         analysis?.clearAnalyzer()
         cameraProvider?.unbindAll()
         cameraProvider = null
@@ -460,6 +533,9 @@ class PrivacyService : LifecycleService(), SensorEventListener {
         private const val STILL_INTERVAL_MS = 1_500L
         private const val STEADY_INTERVAL_MS = 300L
         private const val SETTLE_MS = 3_000L
+        private const val PRIORITY_PAUSE_MS = 3_000L
+        private const val TAKEN_PAUSE_MS = 10_000L
+        private const val RETURN_DELAY_MS = 1_500L
 
         private val _status = MutableStateFlow(PrivacyStatus())
         val status: StateFlow<PrivacyStatus> = _status.asStateFlow()
