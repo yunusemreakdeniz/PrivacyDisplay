@@ -15,6 +15,8 @@ android {
         targetSdk = 34
         versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("VERSION_NAME") ?: "1.0.0"
+        // Phones only: the bundled face model ships native code per CPU, x86 copies just add size.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
     signingConfigs {
